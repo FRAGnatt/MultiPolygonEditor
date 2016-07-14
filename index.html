@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Polygon Editor</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <!-- Если вы используете API локально, то в URL ресурса необходимо указывать протокол в стандартном виде (http://...)-->
+    <script src="jquery-3.0.0.min.js" type="text/javascript"></script>
+    <script src="polygonList.js" type="text/javascript"></script>
+    <script src="http://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+	<style>
+        html, body, #map {
+            width: 100%; height: 600px; padding: 0; margin: 0;
+        }
+        .td-container {
+           height:20px;
+           margin-bottom: 10px;
+           text-align: center;
+           margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class='td-container'>
+    <button onClick="enableEditMode()">Добавить новую область</button>
+    <button onClick="enableDeleteMode()">Режим Удаления</button>
+    <button>Сохранить</button>
+</div>
+<div id="map"></div>
+
+<script>
+
+function init() {
+    for (key in polygonArray) {
+        var newPolygon = createPolygon(polygonArray[key], key == 'moscow')
+        myMap.geoObjects.add(newPolygon);
+    }
+}
+
+// var polygonArray = [];
+var editingMode = false;
+var deleteMode = false;
+
+function enableEditMode() {
+    if (!editingMode && myMap != null) {
+        editingMode = true;
+        deleteMode = false;
+        newDrawer(window.myMap);
+    }
+}
+
+function disableEditMode() {
+    editingMode = false;
+}
+
+function enableDeleteMode() {
+    editingMode = false;
+    deleteMode = true;
+}
+
+function createPolygon(coords, isMoscow) {
+    var polygonOptions = {
+        fillColor: '#6699ff',
+        opacity: 0.5,
+        strokeWidth: 0
+    };  
+    if (isMoscow) {
+        polygonOptions.fillColor = '#4CAF50';
+    }
+    var newPolygon = new ymaps.Polygon([
+         coords
+    ], {
+    }, polygonOptions);
+
+    newPolygon.events.add('click', function () {
+        if (deleteMode) {
+            myMap.geoObjects.remove(newPolygon);
+        }
+    });
+
+    // polygonArray.push(newPolygon);
+
+    return newPolygon;
+}
+
+function completeEditing(myMap, polyline, isMoscow) {
+    coords = polyline.geometry.getCoordinates();
+    newPolygon = createPolygon(coords, isMoscow);
+    myMap.geoObjects.remove(polyline);
+    myMap.geoObjects.add(newPolygon);
+
+    disableEditMode();
+    // newPolygon.editor.startDrawing();
+}
+
+function newDrawer(myMap){
+    var myPolyline = new ymaps.Polyline([
+     ], {}, {
+        strokeColor: "#00000088",
+        strokeWidth: 2,
+        editorMaxPoints: 30,
+        editorMenuManager: function (items) {
+            items = [];    
+            items.push({
+                title: 'Продолжить',
+                onClick: function () {
+                    // r.state.set("drawing",!1);
+                    // myMap.geoObjects.remove(myPolyline);
+                }
+            });    
+            items.push({
+                title: 'Завершить полигон по тарифами "ЗА МКАДом"',
+                onClick: function () {
+                    myPolyline.editor.state.set("drawing",!1)
+                    completeEditing(myMap,myPolyline);
+                }
+            });
+            items.push({
+                title: 'Завершить полигон по тарифами "МКАД"',
+                onClick: function () {
+                    myPolyline.editor.state.set("drawing",!1)
+                    completeEditing(myMap,myPolyline, true);
+                }
+            });
+            items.push({
+                title: 'Удалить',
+                onClick: function () {
+                    myMap.geoObjects.remove(myPolyline);
+                    disableEditMode();
+                }
+            });
+            return items;
+        }
+    });
+    // Добавляем линию на карту.
+    myMap.geoObjects.add(myPolyline);
+
+
+    var stateMonitor = new ymaps.Monitor(myPolyline.editor.state);
+    stateMonitor.add("drawing", function (isDrawing) {
+        myPolyline.options.set("strokeColor", isDrawing ? '#FF0000' : '#0000FF');
+    });
+
+    // Включаем режим редактирования с возможностью добавления новых вершин.
+    myPolyline.editor.startDrawing();
+}
+
+var myMap = null;
+
+ymaps.ready(function () {
+    var myMap = new ymaps.Map('map', {
+            center: [55.755768, 37.617671],
+            zoom: 10
+        }, {
+            searchControlProvider: 'yandex#search'
+        });
+
+    window.myMap = myMap
+    init();
+    // enableEditMode();
+});
+
+</script>
+</body>
+</html>
