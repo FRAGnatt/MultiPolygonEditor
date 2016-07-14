@@ -17,16 +17,24 @@
            text-align: center;
            margin-top: 20px;
         }
+        .coords {
+            width: 100%;
+            height: 10px;
+        }
     </style>
 </head>
 <body>
 <div class='td-container'>
     <button onClick="enableEditMode()">Добавить новую область</button>
     <button onClick="enableDeleteMode()">Режим Удаления</button>
+    <button onClick="enableCoordMode()">Режим просмотра координат</button>
+
     <button>Сохранить</button>
 </div>
 <div id="map"></div>
-
+<div class="coords">
+    
+</div>
 <script>
 
 function init() {
@@ -39,11 +47,13 @@ function init() {
 // var polygonArray = [];
 var editingMode = false;
 var deleteMode = false;
+var coordMode = false;
 
 function enableEditMode() {
     if (!editingMode && myMap != null) {
         editingMode = true;
         deleteMode = false;
+        coordMode = false;
         newDrawer(window.myMap);
     }
 }
@@ -55,6 +65,13 @@ function disableEditMode() {
 function enableDeleteMode() {
     editingMode = false;
     deleteMode = true;
+    coordMode = false;
+}
+
+function enableCoordMode() {
+    coordMode = true;
+    deleteMode = false;
+    editingMode = false;
 }
 
 function createPolygon(coords, isMoscow) {
@@ -74,6 +91,18 @@ function createPolygon(coords, isMoscow) {
     newPolygon.events.add('click', function () {
         if (deleteMode) {
             myMap.geoObjects.remove(newPolygon);
+        }
+        if (coordMode) {
+            var text = '$coords = [ <br>';
+            var coordList = newPolygon.geometry.getCoordinates()
+            for (var coords in coordList) {
+                for (var coord in coordList[coords]) {
+                    text += '&nbsp;&nbsp;[' + coordList[coords][coord] + '], <br>'    
+                }
+                
+            }
+            text += ']'
+            $('.coords').html(text)
         }
     });
 
